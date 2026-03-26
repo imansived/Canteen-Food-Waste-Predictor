@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canteen Food Waste Predictor · SDG 12</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #1D9E75;
+    --green-light: #E1F5EE;
+    --green-dark: #085041;
+    --amber: #BA7517;
+    --amber-light: #FAEEDA;
+    --red: #E24B4A;
+    --red-light: #FCEBEB;
+    --blue: #378ADD;
+    --blue-light: #E6F1FB;
+    --gray: #888780;
+    --gray-light: #F1EFE8;
+    --bg: #F7F6F2;
+    --surface: #FFFFFF;
+    --border: rgba(136,135,128,0.2);
+    --text: #2C2C2A;
+    --text-muted: #5F5E5A;
+    --text-hint: #888780;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .header {
+    background: var(--green-dark);
+    color: white;
+    padding: 2rem 2rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: 30%;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.03);
+  }
+
+  .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+
+  .sdg-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.9);
+    padding: 4px 10px;
+    border-radius: 100px;
+    letter-spacing: 0.08em;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .header h1 {
+    font-size: clamp(20px, 4vw, 28px);
+    font-weight: 600;
+    margin-top: 12px;
+    line-height: 1.2;
+  }
+
+  .header p {
+    font-size: 14px;
+    opacity: 0.7;
+    margin-top: 6px;
+  }
+
+  .main { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+
+  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+
+  .metric-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.1rem;
+  }
+
+  .metric-label { font-size: 11px; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .metric-value { font-size: 26px; font-weight: 600; color: var(--text); line-height: 1; }
+  .metric-sub { font-size: 11px; color: var(--text-hint); margin-top: 4px; }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-hint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    margin-top: 1.5rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+
+  select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888780' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+
+  select:focus { outline: none; border-color: var(--green); }
+
+  .slider-row { margin-top: 14px; }
+  .slider-row label { font-size: 12px; color: var(--text-muted); font-weight: 500; display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .slider-row label span { color: var(--text); font-weight: 600; }
+
+  input[type=range] {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    appearance: none;
+    background: var(--gray-light);
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--green);
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+
+  .predict-btn {
+    width: 100%;
+    margin-top: 1.25rem;
+    padding: 12px;
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    letter-spacing: 0.01em;
+  }
+
+  .predict-btn:hover { background: var(--green-dark); }
+  .predict-btn:active { transform: scale(0.99); }
+
+  .result-box {
+    display: none;
+    margin-top: 1rem;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .result-header {
+    background: var(--green-light);
+    padding: 10px 1.25rem;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--green-dark);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .result-body { padding: 0 1.25rem; background: var(--surface); }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 14px;
+  }
+
+  .result-row:last-of-type { border-bottom: none; }
+
+  .badge {
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 100px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-ok { background: var(--green-light); color: var(--green-dark); }
+  .badge-warn { background: var(--amber-light); color: var(--amber); }
+  .badge-high { background: var(--red-light); color: var(--red); }
+
+  .result-total {
+    background: var(--bg);
+    padding: 12px 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 0.5px solid var(--border);
+  }
+
+  .result-total span:first-child { font-size: 14px; font-weight: 600; }
+  .result-total span:last-child { font-size: 24px; font-weight: 700; color: var(--green-dark); font-family: 'Space Mono', monospace; }
+
+  .rec-box {
+    margin: 0 1.25rem 1.25rem;
+    padding: 10px 14px;
+    background: var(--blue-light);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: #185FA5;
+    line-height: 1.5;
+    border-left: 3px solid var(--blue);
+  }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab {
+    font-size: 13px;
+    padding: 7px 16px;
+    border-radius: 100px;
+    border: 0.5px solid var(--border);
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--text-muted);
+    transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .tab:hover { background: var(--gray-light); }
+  .tab.active { background: var(--green-dark); color: white; border-color: var(--green-dark); font-weight: 500; }
+
+  .chart-panel { display: none; }
+  .chart-panel.active { display: block; }
+
+  .insight-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 1rem;
+  }
+
+  .insight {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .insight strong { color: var(--text); display: block; font-size: 13px; margin-bottom: 2px; }
+
+  .footer {
+    text-align: center;
+    padding: 2rem;
+    font-size: 12px;
+    color: var(--text-hint);
+    border-top: 0.5px solid var(--border);
+    margin-top: 2rem;
+    font-family: 'Space Mono', monospace;
+  }
+
+  @media (max-width: 540px) {
+    .metric-grid { grid-template-columns: repeat(2, 1fr); }
+    .form-grid { grid-template-columns: 1fr; }
+    .insight-strip { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="sdg-badge">SDG 12 · Responsible Consumption</div>
+    <div class="sdg-badge">ML Prediction Model</div>
+  </div>
+  <h1>Canteen Food Waste Predictor</h1>
+  <p>Predict daily waste · Reduce overproduction · Save resources</p>
+</div>
+
+<div class="main">
+
+  <div class="section-label">Overview — last 90 days</div>
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-label">Avg daily waste</div>
+      <div class="metric-value">18.4 kg</div>
+      <div class="metric-sub">synthetic data baseline</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Worst day</div>
+      <div class="metric-value">Monday</div>
+      <div class="metric-sub">highest avg waste</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Potential saving</div>
+      <div class="metric-value">~34%</div>
+      <div class="metric-sub">with smart planning</div>
+    </div>
+  </div>
+
+  <div class="section-label">Predict today's waste</div>
+  <div class="card">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Day of week</label>
+        <select id="day">
+          <option value="0">Monday</option>
+          <option value="1">Tuesday</option>
+          <option value="2">Wednesday</option>
+          <option value="3">Thursday</option>
+          <option value="4">Friday</option>
+          <option value="5">Saturday</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Weather</label>
+        <select id="weather">
+          <option value="0">Sunny</option>
+          <option value="1">Cloudy</option>
+          <option value="2">Rainy</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Academic event</label>
+        <select id="event">
+          <option value="0">Normal day</option>
+          <option value="1">Exam week</option>
+          <option value="2">Fest / holiday</option>
+          <option value="3">Sports day</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Menu type</label>
+        <select id="menu">
+          <option value="0">Regular (dal-rice)</option>
+          <option value="1">Special (biryani)</option>
+          <option value="2">Fast food day</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="slider-row">
+      <label>Expected footfall <span id="footfall-val">300</span> students</label>
+      <input type="range" id="footfall" min="50" max="600" step="10" value="300">
+    </div>
+
+    <button class="predict-btn" onclick="predict()">Run Prediction →</button>
+
+    <div class="result-box" id="result-box">
+      <div class="result-header">Predicted waste breakdown</div>
+      <div class="result-body" id="result-rows"></div>
+      <div class="result-total">
+        <span>Total predicted waste</span>
+        <span id="total-waste">—</span>
+      </div>
+      <div class="rec-box" id="recommendation"></div>
+    </div>
+  </div>
+
+  <div class="section-label">Historical patterns (synthetic data)</div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab(0)">By day of week</div>
+    <div class="tab" onclick="switchTab(1)">By menu type</div>
+    <div class="tab" onclick="switchTab(2)">By weather</div>
+  </div>
+
+  <div class="card">
+    <div class="chart-panel active" id="panel0">
+      <div style="position:relative; height: 240px;"><canvas id="chart0"></canvas></div>
+    </div>
+    <div class="chart-panel" id="panel1">
+      <div style="position:relative; height: 240px;"><canvas id="chart1"></canvas></div>
+    </div>
+    <div class="chart-panel" id="panel2">
+      <div style="position:relative; height: 240px;"><canvas id="chart2"></canvas></div>
+    </div>
+  </div>
+
+  <div class="insight-strip">
+    <div class="insight"><strong>Monday effect</strong>Weekly menus reset — overestimation of demand leads to max waste on Mondays.</div>
+    <div class="insight"><strong>Biryani paradox</strong>Special menus over-produced assuming high demand, but waste spikes 60% above average.</div>
+    <div class="insight"><strong>Rain = less waste</strong>Rainy days reduce footfall by ~25%, but canteen rarely adjusts quantities in advance.</div>
+  </div>
+
+  <div class="section-label" style="margin-top: 2rem;">SDG 12 impact projection</div>
+  <div class="card">
+    <div style="position:relative; height: 240px;"><canvas id="chart3"></canvas></div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Built for SDG 12 · Responsible Consumption &amp; Production · College Canteen Waste Model
+</div>
+
+<script>
+  document.getElementById('footfall').addEventListener('input', function() {
+    document.getElementById('footfall-val').textContent = this.value;
+  });
+
+  function predict() {
+    const day = parseInt(document.getElementById('day').value);
+    const weather = parseInt(document.getElementById('weather').value);
+    const event = parseInt(document.getElementById('event').value);
+    const menu = parseInt(document.getElementById('menu').value);
+    const footfall = parseInt(document.getElementById('footfall').value);
+
+    const base = footfall * 0.045;
+    const dayFactor =     [1.3, 1.0, 0.95, 1.0, 1.2, 0.7][day];
+    const weatherFactor = [1.0, 0.9, 0.75][weather];
+    const eventFactor =   [1.0, 0.8, 1.5, 1.3][event];
+    const menuFactor =    [1.0, 1.25, 0.85][menu];
+
+    const total = base * dayFactor * weatherFactor * eventFactor * menuFactor;
+
+    const items = [
+      { name: 'Rice / roti',      share: 0.35 },
+      { name: 'Dal / curry',      share: 0.28 },
+      { name: 'Vegetables',       share: 0.20 },
+      { name: 'Snacks / extras',  share: 0.17 },
+    ];
+
+    const rows = items.map(i => {
+      const kg = (total * i.share).toFixed(1);
+      const level = kg > 4 ? 'high' : kg > 2 ? 'warn' : 'ok';
+      const labels = { high: 'Reduce quantity', warn: 'Monitor closely', ok: 'On track' };
+      return `<div class="result-row">
+        <span>${i.name}</span>
+        <span style="display:flex;align-items:center;gap:10px;">
+          <span style="color:var(--text-muted);font-family:'Space Mono',monospace;font-size:13px">${kg} kg</span>
+          <span class="badge badge-${level}">${labels[level]}</span>
+        </span>
+      </div>`;
+    }).join('');
+
+    const recs = {
+      normal_high:  'High waste expected. Reduce preparation by ~30% and cook in batches of 30 min intervals.',
+      normal_ok:    'Moderate waste expected. Prepare standard quantities but monitor during service.',
+      normal_low:   'Low waste day! Great conditions — stick to plan and track actual leftovers.',
+      exam:         'Exam week = fewer students. Reduce all quantities by ~20%. Promote combo meals.',
+      fest:         'Fest/holiday traffic is unpredictable. Cook in batches every 30 min to avoid bulk waste.',
+    };
+
+    let rec = event === 1 ? recs.exam : event === 2 ? recs.fest : total > 15 ? recs.normal_high : total > 9 ? recs.normal_ok : recs.normal_low;
+
+    document.getElementById('result-rows').innerHTML = rows;
+    document.getElementById('total-waste').textContent = total.toFixed(1) + ' kg';
+    document.getElementById('recommendation').textContent = '  ' + rec;
+    document.getElementById('result-box').style.display = 'block';
+  }
+
+  const gridColor = 'rgba(136,135,128,0.12)';
+  const tickColor = '#888780';
+  const baseOpts = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: tickColor, font: { size: 12, family: 'DM Sans' } }, grid: { display: false } },
+      y: { ticks: { color: tickColor, font: { size: 12, family: 'DM Sans' } }, grid: { color: gridColor }, beginAtZero: true }
+    }
+  };
+
+  new Chart(document.getElementById('chart0'), {
+    type: 'bar',
+    data: {
+      labels: ['Mon','Tue','Wed','Thu','Fri','Sat'],
+      datasets: [{ data: [24,18,17,19,22,11], backgroundColor: ['#E24B4A','#1D9E75','#1D9E75','#1D9E75','#BA7517','#1D9E75'], borderRadius: 6, borderSkipped: false }]
+    },
+    options: JSON.parse(JSON.stringify(baseOpts))
+  });
+
+  new Chart(document.getElementById('chart1'), {
+    type: 'bar',
+    data: {
+      labels: ['Regular (dal-rice)','Special (biryani)','Fast food'],
+      datasets: [{ data: [16,26,13], backgroundColor: ['#1D9E75','#E24B4A','#378ADD'], borderRadius: 6, borderSkipped: false }]
+    },
+    options: JSON.parse(JSON.stringify(baseOpts))
+  });
+
+  new Chart(document.getElementById('chart2'), {
+    type: 'bar',
+    data: {
+      labels: ['Sunny','Cloudy','Rainy'],
+      datasets: [{ data: [20,17,12], backgroundColor: ['#BA7517','#888780','#378ADD'], borderRadius: 6, borderSkipped: false }]
+    },
+    options: JSON.parse(JSON.stringify(baseOpts))
+  });
+
+  new Chart(document.getElementById('chart3'), {
+    type: 'line',
+    data: {
+      labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      datasets: [
+        {
+          label: 'Without model',
+          data: [22,21,23,22,20,24,23,22,21,23,22,20],
+          borderColor: '#E24B4A', backgroundColor: 'rgba(226,75,74,0.08)',
+          tension: 0.4, fill: true, borderWidth: 2, pointRadius: 3
+        },
+        {
+          label: 'With model (projected)',
+          data: [22,20,18,16,15,14,14,13,13,12,12,11],
+          borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.08)',
+          tension: 0.4, fill: true, borderWidth: 2, pointRadius: 3, borderDash: [4,3]
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { color: tickColor, font: { size: 12, family: 'DM Sans' }, boxWidth: 12, boxHeight: 12, borderRadius: 3 }
+        }
+      },
+      scales: {
+        x: { ticks: { color: tickColor, font: { size: 12, family: 'DM Sans' } }, grid: { display: false } },
+        y: { ticks: { color: tickColor, font: { size: 12, family: 'DM Sans' } }, grid: { color: gridColor }, beginAtZero: true }
+      }
+    }
+  });
+
+  function switchTab(idx) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i === idx));
+    document.querySelectorAll('.chart-panel').forEach((p,i) => p.classList.toggle('active', i === idx));
+  }
+</script>
+</body>
+</html>
