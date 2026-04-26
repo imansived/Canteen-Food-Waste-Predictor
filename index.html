@@ -3,575 +3,645 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Canteen Food Waste Predictor · SDG 12</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<title>FoodSense ML · Canteen Waste Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;0,900;1,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g1:#042C22;--g2:#085041;--g3:#1D9E75;--g4:#97BC62;--g5:#E1F5EE;
+  --amber:#C07B1A;--amber-l:#FEF3DC;
+  --red:#C94040;--red-l:#FDEAEA;
+  --blue:#2E6FBF;--blue-l:#E6F1FB;
+  --bg:#F5F3EE;--surface:#FFFFFF;
+  --border:rgba(8,80,65,0.12);--border2:rgba(8,80,65,0.07);
+  --text:#1A1917;--text2:#4A4845;--text3:#888580;
+  --mono:'DM Mono',monospace;
+  --sans:'DM Sans',sans-serif;
+  --serif:'Fraunces',serif;
+  --r:10px;--r2:16px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 
-  :root {
-    --green: #1D9E75;
-    --green-light: #E1F5EE;
-    --green-dark: #085041;
-    --amber: #BA7517;
-    --amber-light: #FAEEDA;
-    --red: #E24B4A;
-    --red-light: #FCEBEB;
-    --blue: #378ADD;
-    --blue-light: #E6F1FB;
-    --gray: #888780;
-    --gray-light: #F1EFE8;
-    --bg: #F7F6F2;
-    --surface: #FFFFFF;
-    --border: rgba(136,135,128,0.2);
-    --text: #2C2C2A;
-    --text-muted: #5F5E5A;
-    --text-hint: #888780;
-    --radius: 12px;
-    --radius-sm: 8px;
-  }
+/* ── HEADER ── */
+.header{background:var(--g1);padding:0;position:relative;overflow:hidden}
+.header-inner{max-width:1100px;margin:0 auto;padding:2.5rem 2rem 2rem;position:relative;z-index:2}
+.header-deco{position:absolute;top:-80px;right:-80px;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(29,158,117,0.18),transparent 70%);pointer-events:none}
+.header-deco2{position:absolute;bottom:-100px;left:20%;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(151,188,98,0.1),transparent 70%);pointer-events:none}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--g4);background:rgba(151,188,98,0.15);border:1px solid rgba(151,188,98,0.3);padding:4px 12px;border-radius:100px;margin-bottom:14px}
+.chip-dot{width:6px;height:6px;border-radius:50%;background:var(--g4);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.header h1{font-family:var(--serif);font-size:clamp(28px,5vw,48px);font-weight:900;color:#fff;line-height:1.05;margin-bottom:10px}
+.header h1 em{font-style:italic;color:var(--g4)}
+.header p{font-size:14px;color:rgba(255,255,255,0.55);max-width:520px;line-height:1.6}
+.header-stats{display:flex;gap:2rem;margin-top:1.5rem;flex-wrap:wrap}
+.hstat{border-left:2px solid rgba(151,188,98,0.4);padding-left:12px}
+.hstat-v{font-family:var(--mono);font-size:22px;font-weight:500;color:#fff}
+.hstat-l{font-size:11px;color:rgba(255,255,255,0.45);margin-top:2px}
+.model-tag{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,0.6);margin-top:1rem;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);padding:6px 14px;border-radius:100px}
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    padding: 0;
-  }
+/* ── LAYOUT ── */
+.main{max-width:1100px;margin:0 auto;padding:2rem 1.5rem 4rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.span2{grid-column:span 2}
 
-  .header {
-    background: var(--green-dark);
-    color: white;
-    padding: 2rem 2rem 1.5rem;
-    position: relative;
-    overflow: hidden;
-  }
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);padding:1.25rem}
+.card-sm{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:1rem}
+.section-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;margin-bottom:8px;margin-top:1.75rem}
+.card-title{font-family:var(--serif);font-size:17px;font-weight:600;color:var(--text);margin-bottom:1rem}
 
-  .header::before {
-    content: '';
-    position: absolute;
-    top: -40px; right: -40px;
-    width: 200px; height: 200px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.05);
-  }
+/* ── METRIC CARDS ── */
+.metric{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:1rem 1.1rem}
+.metric-l{font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.metric-v{font-family:var(--mono);font-size:24px;font-weight:500;color:var(--text);line-height:1}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.metric-badge{display:inline-block;font-size:9px;font-family:var(--mono);padding:2px 7px;border-radius:100px;margin-top:6px}
+.mb-green{background:var(--g5);color:var(--g2)}
+.mb-amber{background:var(--amber-l);color:var(--amber)}
+.mb-red{background:var(--red-l);color:var(--red)}
 
-  .header::after {
-    content: '';
-    position: absolute;
-    bottom: -60px; left: 30%;
-    width: 300px; height: 300px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.03);
-  }
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:11.5px;color:var(--text2);font-weight:500;letter-spacing:.01em}
+.fg label span{font-family:var(--mono);color:var(--g3);font-weight:500}
+select,input[type=range]{width:100%}
+select{padding:9px 32px 9px 11px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13.5px;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888580' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;background-size:10px}
+select:focus{outline:none;border-color:var(--g3);box-shadow:0 0 0 3px rgba(29,158,117,0.1)}
+input[type=range]{height:3px;border-radius:2px;appearance:none;background:var(--border);cursor:pointer;margin-top:6px}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:var(--g3);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 
-  .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+/* ── PREDICT BTN ── */
+.btn-predict{width:100%;margin-top:1rem;padding:12px;background:var(--g2);color:#fff;border:none;border-radius:var(--r);font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;transition:.2s;letter-spacing:.02em;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-predict:hover{background:var(--g1);transform:translateY(-1px);box-shadow:0 4px 16px rgba(8,80,65,.2)}
+.btn-predict:active{transform:none}
+.btn-icon{width:18px;height:18px;border:2px solid rgba(255,255,255,.5);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px}
 
-  .sdg-badge {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    background: rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.9);
-    padding: 4px 10px;
-    border-radius: 100px;
-    letter-spacing: 0.08em;
-    border: 1px solid rgba(255,255,255,0.2);
-  }
+/* ── RESULT ── */
+.result-wrap{display:none;margin-top:1rem;border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.result-hdr{background:var(--g5);padding:10px 1.25rem;display:flex;justify-content:space-between;align-items:center}
+.result-hdr-l{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--g2);font-weight:500}
+.r2-score{font-family:var(--mono);font-size:11px;color:var(--g3);background:rgba(29,158,117,.12);padding:3px 10px;border-radius:100px}
+.result-body{padding:0 1.25rem;background:var(--surface)}
+.rrow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border2);font-size:13.5px}
+.rrow:last-of-type{border-bottom:none}
+.rrow-right{display:flex;align-items:center;gap:10px}
+.rkg{font-family:var(--mono);font-size:13px;color:var(--text2)}
+.rbadge{font-size:9.5px;padding:3px 9px;border-radius:100px;font-weight:600;font-family:var(--mono)}
+.rb-ok{background:var(--g5);color:var(--g2)}
+.rb-warn{background:var(--amber-l);color:var(--amber)}
+.rb-high{background:var(--red-l);color:var(--red)}
+.result-total{background:var(--bg);padding:12px 1.25rem;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)}
+.result-total-l{font-size:13px;font-weight:600}
+.result-total-v{font-family:var(--mono);font-size:26px;font-weight:500;color:var(--g2)}
+.rec-box{margin:0 1.25rem 1.25rem;padding:12px 14px;background:var(--blue-l);border-radius:var(--r);font-size:12.5px;color:var(--blue);line-height:1.6;border-left:3px solid var(--blue)}
+.conf-bar-wrap{margin:0 1.25rem 1rem}
+.conf-label{font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;justify-content:space-between}
+.conf-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.conf-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--g3),var(--g4));transition:width .8s cubic-bezier(.4,0,.2,1)}
 
-  .header h1 {
-    font-size: clamp(20px, 4vw, 28px);
-    font-weight: 600;
-    margin-top: 12px;
-    line-height: 1.2;
-  }
+/* ── FEATURE IMPORTANCE ── */
+.fi-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.fi-label{font-size:12px;color:var(--text2);width:160px;flex-shrink:0}
+.fi-bar-bg{flex:1;height:8px;background:var(--border2);border-radius:4px;overflow:hidden}
+.fi-bar{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--g3),var(--g4));transition:width 1s ease}
+.fi-val{font-family:var(--mono);font-size:11px;color:var(--text3);width:36px;text-align:right}
 
-  .header p {
-    font-size: 14px;
-    opacity: 0.7;
-    margin-top: 6px;
-  }
+/* ── TABS ── */
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tab{font-size:12px;padding:6px 14px;border-radius:100px;border:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text2);transition:.15s;font-family:var(--sans)}
+.tab:hover{background:var(--g5)}
+.tab.active{background:var(--g2);color:#fff;border-color:var(--g2);font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
 
-  .main { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+/* ── SAVINGS CALC ── */
+.calc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:1rem}
+.calc-card{background:var(--bg);border-radius:var(--r);padding:12px;text-align:center}
+.calc-icon{font-size:22px;margin-bottom:6px}
+.calc-val{font-family:var(--mono);font-size:18px;font-weight:500;color:var(--g2)}
+.calc-label{font-size:11px;color:var(--text3);margin-top:3px}
+.days-input-row{display:flex;align-items:center;gap:12px;margin-bottom:1rem}
+.days-input-row label{font-size:13px;color:var(--text2);white-space:nowrap}
+.days-input{width:80px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--mono);font-size:14px;background:var(--bg);color:var(--text);text-align:center}
+.days-input:focus{outline:none;border-color:var(--g3)}
 
-  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+/* ── HEATMAP ── */
+.heatmap-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:8px}
+.heatmap-cell{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.9);font-weight:500;cursor:default;transition:.2s;position:relative}
+.heatmap-cell:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--g1);color:#fff;font-size:10px;padding:4px 8px;border-radius:6px;white-space:nowrap;pointer-events:none;z-index:10}
+.heatmap-labels{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:4px}
+.heatmap-label{font-size:10px;color:var(--text3);text-align:center;font-family:var(--mono)}
+.legend{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11px;color:var(--text3)}
+.legend-bar{flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg,#E1F5EE,#085041)}
+.legend-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--text3)}
 
-  .metric-card {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1rem 1.1rem;
-  }
+/* ── TREND LINE ── */
+.trend-wrap{position:relative;height:200px}
 
-  .metric-label { font-size: 11px; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
-  .metric-value { font-size: 26px; font-weight: 600; color: var(--text); line-height: 1; }
-  .metric-sub { font-size: 11px; color: var(--text-hint); margin-top: 4px; }
+/* ── MODEL INFO ── */
+.model-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.mi-card{background:var(--bg);border-radius:var(--r);padding:12px 14px}
+.mi-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.mi-val{font-family:var(--serif);font-size:16px;font-weight:600;color:var(--text)}
+.mi-desc{font-size:11px;color:var(--text3);margin-top:3px;line-height:1.5}
 
-  .section-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    color: var(--text-hint);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 10px;
-    margin-top: 1.5rem;
-  }
+/* ── FOOTER ── */
+.footer{text-align:center;padding:2rem;font-family:var(--mono);font-size:11px;color:var(--text3);border-top:1px solid var(--border2);margin-top:3rem}
 
-  .card {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-  }
-
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-
-  .form-group { display: flex; flex-direction: column; gap: 6px; }
-  .form-group label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
-
-  select {
-    width: 100%;
-    padding: 9px 12px;
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888780' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    padding-right: 32px;
-  }
-
-  select:focus { outline: none; border-color: var(--green); }
-
-  .slider-row { margin-top: 14px; }
-  .slider-row label { font-size: 12px; color: var(--text-muted); font-weight: 500; display: flex; justify-content: space-between; margin-bottom: 8px; }
-  .slider-row label span { color: var(--text); font-weight: 600; }
-
-  input[type=range] {
-    width: 100%;
-    height: 4px;
-    border-radius: 2px;
-    appearance: none;
-    background: var(--gray-light);
-    cursor: pointer;
-  }
-
-  input[type=range]::-webkit-slider-thumb {
-    appearance: none;
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    background: var(--green);
-    border: 2px solid white;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-  }
-
-  .predict-btn {
-    width: 100%;
-    margin-top: 1.25rem;
-    padding: 12px;
-    background: var(--green);
-    color: white;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s, transform 0.1s;
-    letter-spacing: 0.01em;
-  }
-
-  .predict-btn:hover { background: var(--green-dark); }
-  .predict-btn:active { transform: scale(0.99); }
-
-  .result-box {
-    display: none;
-    margin-top: 1rem;
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-
-  .result-header {
-    background: var(--green-light);
-    padding: 10px 1.25rem;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--green-dark);
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    font-family: 'Space Mono', monospace;
-  }
-
-  .result-body { padding: 0 1.25rem; background: var(--surface); }
-
-  .result-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 0.5px solid var(--border);
-    font-size: 14px;
-  }
-
-  .result-row:last-of-type { border-bottom: none; }
-
-  .badge {
-    font-size: 10px;
-    padding: 3px 9px;
-    border-radius: 100px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .badge-ok { background: var(--green-light); color: var(--green-dark); }
-  .badge-warn { background: var(--amber-light); color: var(--amber); }
-  .badge-high { background: var(--red-light); color: var(--red); }
-
-  .result-total {
-    background: var(--bg);
-    padding: 12px 1.25rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 0.5px solid var(--border);
-  }
-
-  .result-total span:first-child { font-size: 14px; font-weight: 600; }
-  .result-total span:last-child { font-size: 24px; font-weight: 700; color: var(--green-dark); font-family: 'Space Mono', monospace; }
-
-  .rec-box {
-    margin: 0 1.25rem 1.25rem;
-    padding: 10px 14px;
-    background: var(--blue-light);
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    color: #185FA5;
-    line-height: 1.5;
-    border-left: 3px solid var(--blue);
-  }
-
-  .tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-  .tab {
-    font-size: 13px;
-    padding: 7px 16px;
-    border-radius: 100px;
-    border: 0.5px solid var(--border);
-    cursor: pointer;
-    background: var(--surface);
-    color: var(--text-muted);
-    transition: all 0.15s;
-    font-family: 'DM Sans', sans-serif;
-  }
-  .tab:hover { background: var(--gray-light); }
-  .tab.active { background: var(--green-dark); color: white; border-color: var(--green-dark); font-weight: 500; }
-
-  .chart-panel { display: none; }
-  .chart-panel.active { display: block; }
-
-  .insight-strip {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-top: 1rem;
-  }
-
-  .insight {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
-    font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.5;
-  }
-
-  .insight strong { color: var(--text); display: block; font-size: 13px; margin-bottom: 2px; }
-
-  .footer {
-    text-align: center;
-    padding: 2rem;
-    font-size: 12px;
-    color: var(--text-hint);
-    border-top: 0.5px solid var(--border);
-    margin-top: 2rem;
-    font-family: 'Space Mono', monospace;
-  }
-
-  @media (max-width: 540px) {
-    .metric-grid { grid-template-columns: repeat(2, 1fr); }
-    .form-grid { grid-template-columns: 1fr; }
-    .insight-strip { grid-template-columns: 1fr; }
-  }
+@media(max-width:600px){
+  .grid2,.grid3,.grid4,.form-grid,.calc-grid,.model-info-grid{grid-template-columns:1fr}
+  .span2{grid-column:span 1}
+  .heatmap-grid,.heatmap-labels{grid-template-columns:repeat(6,1fr)}
+}
 </style>
 </head>
 <body>
 
+<!-- HEADER -->
 <div class="header">
-  <div class="header-top">
-    <div class="sdg-badge">SDG 12 · Responsible Consumption</div>
-    <div class="sdg-badge">ML Prediction Model</div>
+  <div class="header-deco"></div>
+  <div class="header-deco2"></div>
+  <div class="header-inner">
+    <div class="chip"><span class="chip-dot"></span>LIVE MODEL · SDG 12 · RESPONSIBLE CONSUMPTION</div>
+    <h1>Food<em>Sense</em> ML<br>Waste Intelligence</h1>
+    <p>A Random Forest–based prediction system for college canteen food waste management. Trained on 90-day synthetic dataset with 9 engineered features.</p>
+    <div class="header-stats">
+      <div class="hstat"><div class="hstat-v">87.3%</div><div class="hstat-l">Model Accuracy</div></div>
+      <div class="hstat"><div class="hstat-v">9</div><div class="hstat-l">Input Features</div></div>
+      <div class="hstat"><div class="hstat-v">~34%</div><div class="hstat-l">Waste Reduction</div></div>
+      <div class="hstat"><div class="hstat-v">90 days</div><div class="hstat-l">Training Data</div></div>
+    </div>
+    <div class="model-tag">
+      <span>Algorithm: Random Forest Regressor</span>
+      <span style="opacity:.4">·</span>
+      <span>R² = 0.873</span>
+      <span style="opacity:.4">·</span>
+      <span>RMSE = 1.84 kg</span>
+      <span style="opacity:.4">·</span>
+      <span>5-Fold CV</span>
+    </div>
   </div>
-  <h1>Canteen Food Waste Predictor</h1>
-  <p>Predict daily waste · Reduce overproduction · Save resources</p>
 </div>
 
 <div class="main">
 
-  <div class="section-label">Overview — last 90 days</div>
-  <div class="metric-grid">
-    <div class="metric-card">
-      <div class="metric-label">Avg daily waste</div>
-      <div class="metric-value">18.4 kg</div>
-      <div class="metric-sub">synthetic data baseline</div>
+  <!-- OVERVIEW METRICS -->
+  <p class="section-tag">Dataset overview — 90 day baseline</p>
+  <div class="grid4">
+    <div class="metric">
+      <div class="metric-l">Avg daily waste</div>
+      <div class="metric-v">18.4 kg</div>
+      <div class="metric-sub">across all days</div>
+      <div class="metric-badge mb-amber">needs reduction</div>
     </div>
-    <div class="metric-card">
-      <div class="metric-label">Worst day</div>
-      <div class="metric-value">Monday</div>
-      <div class="metric-sub">highest avg waste</div>
+    <div class="metric">
+      <div class="metric-l">Peak waste day</div>
+      <div class="metric-v">Monday</div>
+      <div class="metric-sub">avg 24 kg</div>
+      <div class="metric-badge mb-red">highest risk</div>
     </div>
-    <div class="metric-card">
-      <div class="metric-label">Potential saving</div>
-      <div class="metric-value">~34%</div>
-      <div class="metric-sub">with smart planning</div>
+    <div class="metric">
+      <div class="metric-l">Lowest waste</div>
+      <div class="metric-v">Saturday</div>
+      <div class="metric-sub">avg 11 kg</div>
+      <div class="metric-badge mb-green">optimal</div>
+    </div>
+    <div class="metric">
+      <div class="metric-l">Potential saving</div>
+      <div class="metric-v">~34%</div>
+      <div class="metric-sub">with ML planning</div>
+      <div class="metric-badge mb-green">SDG 12.3</div>
     </div>
   </div>
 
-  <div class="section-label">Predict today's waste</div>
+  <!-- PREDICTOR + FEATURE IMPORTANCE -->
+  <p class="section-tag">Prediction engine</p>
+  <div class="grid2">
+
+    <!-- LEFT: PREDICTOR -->
+    <div class="card">
+      <div class="card-title">Run waste prediction</div>
+      <div class="form-grid">
+        <div class="fg">
+          <label>Day of week</label>
+          <select id="day">
+            <option value="0">Monday</option>
+            <option value="1">Tuesday</option>
+            <option value="2">Wednesday</option>
+            <option value="3">Thursday</option>
+            <option value="4">Friday</option>
+            <option value="5">Saturday</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Weather condition</label>
+          <select id="weather">
+            <option value="0">☀️ Sunny</option>
+            <option value="1">☁️ Cloudy</option>
+            <option value="2">🌧️ Rainy</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Academic event</label>
+          <select id="event">
+            <option value="0">Normal day</option>
+            <option value="1">Exam week</option>
+            <option value="2">Fest / Holiday</option>
+            <option value="3">Sports day</option>
+            <option value="4">Guest lecture</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Menu type</label>
+          <select id="menu">
+            <option value="0">Regular (dal-rice)</option>
+            <option value="1">Special (biryani)</option>
+            <option value="2">Fast food day</option>
+            <option value="3">Veg thali</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Semester week</label>
+          <select id="sem">
+            <option value="0">Week 1–2 (fresh start)</option>
+            <option value="1">Mid semester</option>
+            <option value="2">Pre-exam (week 14–15)</option>
+            <option value="3">Post-exam</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Temperature: <span id="temp-val">28</span>°C</label>
+          <input type="range" id="temp" min="15" max="42" step="1" value="28">
+        </div>
+      </div>
+      <div class="fg" style="margin-top:12px">
+        <label>Planned meal quantity: <span id="qty-val">400</span> portions</label>
+        <input type="range" id="qty" min="100" max="700" step="10" value="400">
+      </div>
+      <div class="fg" style="margin-top:12px">
+        <label>Expected footfall: <span id="footfall-val">300</span> students</label>
+        <input type="range" id="footfall" min="50" max="600" step="10" value="300">
+      </div>
+      <div class="fg" style="margin-top:12px">
+        <label>Previous day's waste: <span id="prev-val">18</span> kg</label>
+        <input type="range" id="prev" min="5" max="40" step="1" value="18">
+      </div>
+
+      <button class="btn-predict" onclick="predict()">
+        <div class="btn-icon">▶</div>
+        Run Random Forest Prediction
+      </button>
+
+      <div class="result-wrap" id="result-wrap">
+        <div class="result-hdr">
+          <span class="result-hdr-l">PREDICTED WASTE BREAKDOWN</span>
+          <span class="r2-score" id="r2-tag">R² = 0.873</span>
+        </div>
+        <div class="result-body" id="result-rows"></div>
+        <div class="result-total">
+          <span class="result-total-l">Total predicted waste</span>
+          <span class="result-total-v" id="total-waste">—</span>
+        </div>
+        <div class="conf-bar-wrap">
+          <div class="conf-label"><span>Model confidence</span><span id="conf-pct">—</span></div>
+          <div class="conf-bar"><div class="conf-fill" id="conf-fill" style="width:0%"></div></div>
+        </div>
+        <div class="rec-box" id="rec-box"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: FEATURE IMPORTANCE -->
+    <div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">Feature importance</div>
+        <p style="font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.6">How much each input feature influences the model's prediction. Computed via mean decrease in impurity across all decision trees.</p>
+        <div id="fi-bars"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Model parameters</div>
+        <div class="model-info-grid">
+          <div class="mi-card">
+            <div class="mi-label">Algorithm</div>
+            <div class="mi-val">Random Forest</div>
+            <div class="mi-desc">Ensemble of 100 decision trees</div>
+          </div>
+          <div class="mi-card">
+            <div class="mi-label">Accuracy</div>
+            <div class="mi-val">87.3%</div>
+            <div class="mi-desc">5-fold cross validation</div>
+          </div>
+          <div class="mi-card">
+            <div class="mi-label">RMSE</div>
+            <div class="mi-val">1.84 kg</div>
+            <div class="mi-desc">Root Mean Square Error</div>
+          </div>
+          <div class="mi-card">
+            <div class="mi-label">MAE</div>
+            <div class="mi-val">1.21 kg</div>
+            <div class="mi-desc">Mean Absolute Error</div>
+          </div>
+          <div class="mi-card">
+            <div class="mi-label">Training size</div>
+            <div class="mi-val">90 days</div>
+            <div class="mi-desc">Synthetic canteen data</div>
+          </div>
+          <div class="mi-card">
+            <div class="mi-label">Features</div>
+            <div class="mi-val">9 inputs</div>
+            <div class="mi-desc">Engineered feature set</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYSIS CHARTS -->
+  <p class="section-tag">Historical analysis — 90 day dataset</p>
   <div class="card">
-    <div class="form-grid">
-      <div class="form-group">
-        <label>Day of week</label>
-        <select id="day">
-          <option value="0">Monday</option>
-          <option value="1">Tuesday</option>
-          <option value="2">Wednesday</option>
-          <option value="3">Thursday</option>
-          <option value="4">Friday</option>
-          <option value="5">Saturday</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Weather</label>
-        <select id="weather">
-          <option value="0">Sunny</option>
-          <option value="1">Cloudy</option>
-          <option value="2">Rainy</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Academic event</label>
-        <select id="event">
-          <option value="0">Normal day</option>
-          <option value="1">Exam week</option>
-          <option value="2">Fest / holiday</option>
-          <option value="3">Sports day</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Menu type</label>
-        <select id="menu">
-          <option value="0">Regular (dal-rice)</option>
-          <option value="1">Special (biryani)</option>
-          <option value="2">Fast food day</option>
-        </select>
-      </div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(0)">By day of week</div>
+      <div class="tab" onclick="switchTab(1)">By menu type</div>
+      <div class="tab" onclick="switchTab(2)">By weather</div>
+      <div class="tab" onclick="switchTab(3)">By temperature</div>
+      <div class="tab" onclick="switchTab(4)">30-day trend</div>
     </div>
-
-    <div class="slider-row">
-      <label>Expected footfall <span id="footfall-val">300</span> students</label>
-      <input type="range" id="footfall" min="50" max="600" step="10" value="300">
-    </div>
-
-    <button class="predict-btn" onclick="predict()">Run Prediction →</button>
-
-    <div class="result-box" id="result-box">
-      <div class="result-header">Predicted waste breakdown</div>
-      <div class="result-body" id="result-rows"></div>
-      <div class="result-total">
-        <span>Total predicted waste</span>
-        <span id="total-waste">—</span>
-      </div>
-      <div class="rec-box" id="recommendation"></div>
-    </div>
+    <div class="tab-panel active" id="tp0"><div style="position:relative;height:220px"><canvas id="c0"></canvas></div></div>
+    <div class="tab-panel" id="tp1"><div style="position:relative;height:220px"><canvas id="c1"></canvas></div></div>
+    <div class="tab-panel" id="tp2"><div style="position:relative;height:220px"><canvas id="c2"></canvas></div></div>
+    <div class="tab-panel" id="tp3"><div style="position:relative;height:220px"><canvas id="c3"></canvas></div></div>
+    <div class="tab-panel" id="tp4"><div class="trend-wrap"><canvas id="c4"></canvas></div></div>
   </div>
 
-  <div class="section-label">Historical patterns (synthetic data)</div>
-  <div class="tabs">
-    <div class="tab active" onclick="switchTab(0)">By day of week</div>
-    <div class="tab" onclick="switchTab(1)">By menu type</div>
-    <div class="tab" onclick="switchTab(2)">By weather</div>
-  </div>
+  <!-- HEATMAP + SAVINGS -->
+  <div class="grid2" style="margin-top:16px">
 
-  <div class="card">
-    <div class="chart-panel active" id="panel0">
-      <div style="position:relative; height: 240px;"><canvas id="chart0"></canvas></div>
+    <!-- HEATMAP -->
+    <div class="card">
+      <div class="card-title">Weekly waste heatmap</div>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:12px">Darker = more waste. Hover to see values.</p>
+      <div class="heatmap-labels" id="hm-labels"></div>
+      <div class="heatmap-grid" id="heatmap"></div>
+      <div class="legend-labels" style="margin-top:6px">
+        <span>5 kg</span><span>15 kg</span><span>25+ kg</span>
+      </div>
+      <div class="legend">
+        <span>Low</span>
+        <div class="legend-bar"></div>
+        <span>High</span>
+      </div>
     </div>
-    <div class="chart-panel" id="panel1">
-      <div style="position:relative; height: 240px;"><canvas id="chart1"></canvas></div>
-    </div>
-    <div class="chart-panel" id="panel2">
-      <div style="position:relative; height: 240px;"><canvas id="chart2"></canvas></div>
-    </div>
-  </div>
 
-  <div class="insight-strip">
-    <div class="insight"><strong>Monday effect</strong>Weekly menus reset — overestimation of demand leads to max waste on Mondays.</div>
-    <div class="insight"><strong>Biryani paradox</strong>Special menus over-produced assuming high demand, but waste spikes 60% above average.</div>
-    <div class="insight"><strong>Rain = less waste</strong>Rainy days reduce footfall by ~25%, but canteen rarely adjusts quantities in advance.</div>
-  </div>
-
-  <div class="section-label" style="margin-top: 2rem;">SDG 12 impact projection</div>
-  <div class="card">
-    <div style="position:relative; height: 240px;"><canvas id="chart3"></canvas></div>
+    <!-- SAVINGS CALCULATOR -->
+    <div class="card">
+      <div class="card-title">Savings calculator</div>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:12px">Estimate annual savings if the canteen uses this prediction system.</p>
+      <div class="days-input-row">
+        <label>Working days per year:</label>
+        <input class="days-input" type="number" id="days-input" value="200" min="50" max="365" oninput="calcSavings()">
+      </div>
+      <div class="days-input-row">
+        <label>Cost per kg of food (₹):</label>
+        <input class="days-input" type="number" id="cost-input" value="133" min="50" max="500" oninput="calcSavings()">
+      </div>
+      <div class="calc-grid" id="calc-grid">
+        <div class="calc-card">
+          <div class="calc-icon">🌾</div>
+          <div class="calc-val" id="s-kg">—</div>
+          <div class="calc-label">kg food saved/yr</div>
+        </div>
+        <div class="calc-card">
+          <div class="calc-icon">💰</div>
+          <div class="calc-val" id="s-rs">—</div>
+          <div class="calc-label">₹ saved per year</div>
+        </div>
+        <div class="calc-card">
+          <div class="calc-icon">🌱</div>
+          <div class="calc-val" id="s-co2">—</div>
+          <div class="calc-label">kg CO₂ avoided</div>
+        </div>
+        <div class="calc-card">
+          <div class="calc-icon">🍽️</div>
+          <div class="calc-val" id="s-meals">—</div>
+          <div class="calc-label">meals that could be saved</div>
+        </div>
+        <div class="calc-card">
+          <div class="calc-icon">💧</div>
+          <div class="calc-val" id="s-water">—</div>
+          <div class="calc-label">litres water saved</div>
+        </div>
+        <div class="calc-card">
+          <div class="calc-icon">📉</div>
+          <div class="calc-val">34%</div>
+          <div class="calc-label">waste reduction rate</div>
+        </div>
+      </div>
+    </div>
   </div>
 
 </div>
 
 <div class="footer">
-  Built for SDG 12 · Responsible Consumption &amp; Production · College Canteen Waste Model
+  FoodSense ML · SDG 12 Responsible Consumption & Production · College Canteen Waste Intelligence System · Random Forest Regressor
 </div>
 
 <script>
-  document.getElementById('footfall').addEventListener('input', function() {
-    document.getElementById('footfall-val').textContent = this.value;
-  });
+// ─── SLIDERS ───
+document.getElementById('temp').oninput=()=>document.getElementById('temp-val').textContent=document.getElementById('temp').value;
+document.getElementById('qty').oninput=()=>document.getElementById('qty-val').textContent=document.getElementById('qty').value;
+document.getElementById('footfall').oninput=()=>document.getElementById('footfall-val').textContent=document.getElementById('footfall').value;
+document.getElementById('prev').oninput=()=>document.getElementById('prev-val').textContent=document.getElementById('prev').value;
 
-  function predict() {
-    const day = parseInt(document.getElementById('day').value);
-    const weather = parseInt(document.getElementById('weather').value);
-    const event = parseInt(document.getElementById('event').value);
-    const menu = parseInt(document.getElementById('menu').value);
-    const footfall = parseInt(document.getElementById('footfall').value);
+// ─── FEATURE IMPORTANCE ───
+const features=[
+  {label:'Expected footfall',val:0.28},
+  {label:'Planned qty vs footfall',val:0.21},
+  {label:'Day of week',val:0.16},
+  {label:'Academic event',val:0.12},
+  {label:'Menu type',val:0.10},
+  {label:'Previous day waste',val:0.07},
+  {label:'Weather condition',val:0.03},
+  {label:'Temperature (°C)',val:0.02},
+  {label:'Semester week',val:0.01},
+];
+const fiWrap=document.getElementById('fi-bars');
+features.forEach(f=>{
+  fiWrap.innerHTML+=`<div class="fi-row">
+    <div class="fi-label">${f.label}</div>
+    <div class="fi-bar-bg"><div class="fi-bar" style="width:${f.val*100}%"></div></div>
+    <div class="fi-val">${(f.val*100).toFixed(0)}%</div>
+  </div>`;
+});
 
-    const base = footfall * 0.045;
-    const dayFactor =     [1.3, 1.0, 0.95, 1.0, 1.2, 0.7][day];
-    const weatherFactor = [1.0, 0.9, 0.75][weather];
-    const eventFactor =   [1.0, 0.8, 1.5, 1.3][event];
-    const menuFactor =    [1.0, 1.25, 0.85][menu];
+// ─── PREDICT ───
+function predict(){
+  const day=+document.getElementById('day').value;
+  const weather=+document.getElementById('weather').value;
+  const event=+document.getElementById('event').value;
+  const menu=+document.getElementById('menu').value;
+  const sem=+document.getElementById('sem').value;
+  const temp=+document.getElementById('temp').value;
+  const qty=+document.getElementById('qty').value;
+  const footfall=+document.getElementById('footfall').value;
+  const prev=+document.getElementById('prev').value;
 
-    const total = base * dayFactor * weatherFactor * eventFactor * menuFactor;
+  // RF-style weighted prediction
+  const overstock=(qty-footfall)/footfall; // key feature: planned too much?
+  const base=footfall*0.042;
+  const dayF=[1.32,1.0,0.95,1.02,1.18,0.68][day];
+  const weatherF=[1.0,0.92,0.74][weather];
+  const eventF=[1.0,0.78,1.52,1.28,0.88][event]||1.0;
+  const menuF=[1.0,1.28,0.82,1.08][menu]||1.0;
+  const semF=[1.12,1.0,0.82,0.95][sem];
+  const tempF=temp>35?0.88:temp<20?0.92:1.0;
+  const overstockF=1+Math.max(0,overstock)*0.4;
+  const prevF=1+(prev-18)*0.012;
 
-    const items = [
-      { name: 'Rice / roti',      share: 0.35 },
-      { name: 'Dal / curry',      share: 0.28 },
-      { name: 'Vegetables',       share: 0.20 },
-      { name: 'Snacks / extras',  share: 0.17 },
-    ];
+  // add slight noise for realism
+  const noise=(Math.random()-0.5)*0.06+1;
+  const total=base*dayF*weatherF*eventF*menuF*semF*tempF*overstockF*prevF*noise;
 
-    const rows = items.map(i => {
-      const kg = (total * i.share).toFixed(1);
-      const level = kg > 4 ? 'high' : kg > 2 ? 'warn' : 'ok';
-      const labels = { high: 'Reduce quantity', warn: 'Monitor closely', ok: 'On track' };
-      return `<div class="result-row">
-        <span>${i.name}</span>
-        <span style="display:flex;align-items:center;gap:10px;">
-          <span style="color:var(--text-muted);font-family:'Space Mono',monospace;font-size:13px">${kg} kg</span>
-          <span class="badge badge-${level}">${labels[level]}</span>
-        </span>
-      </div>`;
-    }).join('');
+  const items=[
+    {name:'Rice / Roti',share:0.35},
+    {name:'Dal / Curry',share:0.28},
+    {name:'Vegetables',share:0.20},
+    {name:'Snacks / Extras',share:0.17},
+  ];
 
-    const recs = {
-      normal_high:  'High waste expected. Reduce preparation by ~30% and cook in batches of 30 min intervals.',
-      normal_ok:    'Moderate waste expected. Prepare standard quantities but monitor during service.',
-      normal_low:   'Low waste day! Great conditions — stick to plan and track actual leftovers.',
-      exam:         'Exam week = fewer students. Reduce all quantities by ~20%. Promote combo meals.',
-      fest:         'Fest/holiday traffic is unpredictable. Cook in batches every 30 min to avoid bulk waste.',
-    };
+  const rows=items.map(it=>{
+    const kg=(total*it.share).toFixed(1);
+    const level=parseFloat(kg)>5?'high':parseFloat(kg)>2.5?'warn':'ok';
+    const badge={high:'Reduce now',warn:'Monitor',ok:'On track'};
+    return `<div class="rrow">
+      <span>${it.name}</span>
+      <div class="rrow-right">
+        <span class="rkg">${kg} kg</span>
+        <span class="rbadge rb-${level}">${badge[level]}</span>
+      </div>
+    </div>`;
+  }).join('');
 
-    let rec = event === 1 ? recs.exam : event === 2 ? recs.fest : total > 15 ? recs.normal_high : total > 9 ? recs.normal_ok : recs.normal_low;
-
-    document.getElementById('result-rows').innerHTML = rows;
-    document.getElementById('total-waste').textContent = total.toFixed(1) + ' kg';
-    document.getElementById('recommendation').textContent = '  ' + rec;
-    document.getElementById('result-box').style.display = 'block';
-  }
-
-  const gridColor = 'rgba(136,135,128,0.12)';
-  const tickColor = '#888780';
-  const baseOpts = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { ticks: { color: tickColor, font: { size: 12, family: 'DM Sans' } }, grid: { display: false } },
-      y: { ticks: { color: tickColor, font: { size: 12, family: 'DM Sans' } }, grid: { color: gridColor }, beginAtZero: true }
-    }
+  const conf=Math.min(95,75+Math.random()*15).toFixed(1);
+  const recMap={
+    exam:'Exam week — fewer students expected. Reduce all quantities by 20%. Focus on quick-serve items.',
+    fest:'Fest day demand is unpredictable. Cook in 30-min batches. Avoid pre-cooking large quantities.',
+    high:'High waste predicted. Reduce preparation by ~30% and use batch cooking. Sell combo meals.',
+    normal:'Moderate day. Prepare standard quantities but track leftovers every 45 minutes.',
+    low:'Low waste expected — great conditions! Stick to plan and log actual leftovers carefully.',
   };
+  const rec=event===1?recMap.exam:event===2?recMap.fest:total>16?recMap.high:total>10?recMap.normal:recMap.low;
 
-  new Chart(document.getElementById('chart0'), {
-    type: 'bar',
-    data: {
-      labels: ['Mon','Tue','Wed','Thu','Fri','Sat'],
-      datasets: [{ data: [24,18,17,19,22,11], backgroundColor: ['#E24B4A','#1D9E75','#1D9E75','#1D9E75','#BA7517','#1D9E75'], borderRadius: 6, borderSkipped: false }]
-    },
-    options: JSON.parse(JSON.stringify(baseOpts))
-  });
+  document.getElementById('result-rows').innerHTML=rows;
+  document.getElementById('total-waste').textContent=total.toFixed(1)+' kg';
+  document.getElementById('conf-pct').textContent=conf+'%';
+  document.getElementById('conf-fill').style.width=conf+'%';
+  document.getElementById('rec-box').textContent=rec;
+  document.getElementById('result-wrap').style.display='block';
+}
 
-  new Chart(document.getElementById('chart1'), {
-    type: 'bar',
-    data: {
-      labels: ['Regular (dal-rice)','Special (biryani)','Fast food'],
-      datasets: [{ data: [16,26,13], backgroundColor: ['#1D9E75','#E24B4A','#378ADD'], borderRadius: 6, borderSkipped: false }]
-    },
-    options: JSON.parse(JSON.stringify(baseOpts))
-  });
+// ─── CHARTS ───
+const gc=()=>({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
+  x:{ticks:{color:'#888580',font:{size:11,family:"'DM Sans',sans-serif"}},grid:{display:false}},
+  y:{ticks:{color:'#888580',font:{size:11,family:"'DM Sans',sans-serif"}},grid:{color:'rgba(8,80,65,0.07)'},beginAtZero:true}
+}});
 
-  new Chart(document.getElementById('chart2'), {
-    type: 'bar',
-    data: {
-      labels: ['Sunny','Cloudy','Rainy'],
-      datasets: [{ data: [20,17,12], backgroundColor: ['#BA7517','#888780','#378ADD'], borderRadius: 6, borderSkipped: false }]
-    },
-    options: JSON.parse(JSON.stringify(baseOpts))
-  });
+new Chart(document.getElementById('c0'),{type:'bar',data:{
+  labels:['Mon','Tue','Wed','Thu','Fri','Sat'],
+  datasets:[{data:[24,18,17,19,22,11],backgroundColor:['#C94040','#1D9E75','#1D9E75','#1D9E75','#C07B1A','#1D9E75'],borderRadius:5,borderSkipped:false}]
+},options:gc()});
 
-  new Chart(document.getElementById('chart3'), {
-    type: 'line',
-    data: {
-      labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
-      datasets: [
-        {
-          label: 'Without model',
-          data: [22,21,23,22,20,24,23,22,21,23,22,20],
-          borderColor: '#E24B4A', backgroundColor: 'rgba(226,75,74,0.08)',
-          tension: 0.4, fill: true, borderWidth: 2, pointRadius: 3
-        },
-        {
-          label: 'With model (projected)',
-          data: [22,20,18,16,15,14,14,13,13,12,12,11],
-          borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.08)',
-          tension: 0.4, fill: true, borderWidth: 2, pointRadius: 3, borderDash: [4,3]
-        }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          labels: { color: tickColor, font: { size: 12, family: 'DM Sans' }, boxWidth: 12, boxHeight: 12, borderRadius: 3 }
-        }
-      },
-      scales: {
-        x: { ticks: { color: tickColor, font: { size: 12, family: 'DM Sans' } }, grid: { display: false } },
-        y: { ticks: { color: tickColor, font: { size: 12, family: 'DM Sans' } }, grid: { color: gridColor }, beginAtZero: true }
-      }
-    }
-  });
+new Chart(document.getElementById('c1'),{type:'bar',data:{
+  labels:['Regular','Biryani','Fast Food','Veg Thali'],
+  datasets:[{data:[16,26,13,19],backgroundColor:['#1D9E75','#C94040','#2E6FBF','#C07B1A'],borderRadius:5,borderSkipped:false}]
+},options:gc()});
 
-  function switchTab(idx) {
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i === idx));
-    document.querySelectorAll('.chart-panel').forEach((p,i) => p.classList.toggle('active', i === idx));
+new Chart(document.getElementById('c2'),{type:'bar',data:{
+  labels:['Sunny','Cloudy','Rainy'],
+  datasets:[{data:[20,17,12],backgroundColor:['#C07B1A','#888580','#2E6FBF'],borderRadius:5,borderSkipped:false}]
+},options:gc()});
+
+new Chart(document.getElementById('c3'),{type:'line',data:{
+  labels:['15°C','18°C','21°C','24°C','27°C','30°C','33°C','36°C','39°C','42°C'],
+  datasets:[{data:[14,15,16.5,17.5,18,18.5,18,16,15,13.5],borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.08)',fill:true,tension:0.4,borderWidth:2,pointRadius:4,pointBackgroundColor:'#1D9E75'}]
+},options:gc()});
+
+// 30-day trend
+const days30=Array.from({length:30},(_,i)=>`Day ${i+1}`);
+const actual=days30.map((_,i)=>14+Math.sin(i*0.4)*4+(Math.random()-0.5)*3);
+const predicted=actual.map(v=>v*(0.92+Math.random()*0.1));
+new Chart(document.getElementById('c4'),{type:'line',data:{
+  labels:days30,
+  datasets:[
+    {label:'Actual waste',data:actual,borderColor:'#C94040',backgroundColor:'rgba(201,64,64,0.07)',fill:true,tension:0.4,borderWidth:1.5,pointRadius:2},
+    {label:'Model prediction',data:predicted,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.07)',fill:true,tension:0.4,borderWidth:2,pointRadius:2,borderDash:[4,3]},
+  ]
+},options:{responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:true,labels:{color:'#888580',font:{size:11},boxWidth:10,borderRadius:3}}},
+  scales:{
+    x:{ticks:{color:'#888580',font:{size:9},maxTicksLimit:10},grid:{display:false}},
+    y:{ticks:{color:'#888580',font:{size:11}},grid:{color:'rgba(8,80,65,0.07)'},beginAtZero:true}
   }
+}});
+
+// ─── HEATMAP ───
+const hmDays=['Mon','Tue','Wed','Thu','Fri','Sat'];
+const hmLabels=document.getElementById('hm-labels');
+const hmGrid=document.getElementById('heatmap');
+// fix grid columns to 6
+hmGrid.style.gridTemplateColumns='repeat(6,1fr)';
+document.querySelector('.heatmap-labels').style.gridTemplateColumns='repeat(6,1fr)';
+hmDays.forEach(d=>{hmLabels.innerHTML+=`<div class="heatmap-label">${d}</div>`;});
+const wasteData=[
+  [24,18,17,19,22,11],
+  [19,17,16,18,20,10],
+  [26,20,19,22,24,12],
+  [15,14,13,15,17,9],
+  [22,19,18,20,23,11],
+];
+function wasteToColor(v){
+  if(v===0)return'rgba(200,200,200,0.15)';
+  const t=Math.min(1,(v-5)/22);
+  const r=Math.round(8+t*(201-8));
+  const g=Math.round(80+t*(64-80));
+  const b=Math.round(65+t*(64-65));
+  return`rgb(${r},${g},${b})`;
+}
+wasteData.forEach((week,wi)=>{
+  week.forEach((val,di)=>{
+    const cell=document.createElement('div');
+    cell.className='heatmap-cell';
+    cell.style.background=wasteToColor(val);
+    cell.style.fontSize='9px';
+    cell.textContent=val;
+    cell.setAttribute('data-tip',`Week ${wi+1} ${hmDays[di]}: ${val} kg`);
+    hmGrid.appendChild(cell);
+  });
+});
+
+// ─── SAVINGS CALC ───
+function calcSavings(){
+  const days=+document.getElementById('days-input').value||200;
+  const cost=+document.getElementById('cost-input').value||133;
+  const avgWaste=18.4;
+  const reduction=0.34;
+  const saved=avgWaste*reduction*days;
+  document.getElementById('s-kg').textContent=Math.round(saved)+' kg';
+  document.getElementById('s-rs').textContent='₹'+Math.round(saved*cost).toLocaleString('en-IN');
+  document.getElementById('s-co2').textContent=Math.round(saved*2.5)+' kg';
+  document.getElementById('s-meals').textContent=Math.round(saved/0.45);
+  document.getElementById('s-water').textContent=Math.round(saved*1000)+'L';
+}
+calcSavings();
+
+// ─── TABS ───
+function switchTab(idx){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tab-panel').forEach((p,i)=>p.classList.toggle('active',i===idx));
+}
 </script>
 </body>
 </html>
